@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\DevicePairingToken;
+use App\Models\Message;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -107,6 +108,13 @@ class DeviceController extends Controller
             ->orderBy('id')
             ->limit(20)
             ->get(['id', 'recipient', 'body', 'status']);
+
+        if ($pending->isNotEmpty()) {
+            Message::query()
+                ->whereIn('id', $pending->pluck('id'))
+                ->where('status', 'queued')
+                ->update(['status' => 'sending']);
+        }
 
         return response()->json([
             'device' => $device->only(['id', 'status', 'last_sync_at']),
